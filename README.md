@@ -16,7 +16,7 @@ cd tickslate
 ./install.sh
 ```
 
-Then open [http://127.0.0.1:3000](http://127.0.0.1:3000). The server starts again when you log in.
+Then open [http://127.0.0.1:3000](http://127.0.0.1:3000) when you want it. The server keeps running until you stop it.
 
 Use another port if 3000 is taken:
 
@@ -24,7 +24,7 @@ Use another port if 3000 is taken:
 PORT=4000 ./install.sh
 ```
 
-Remove the installed copy, the login item, and the logs:
+Stop the server:
 
 ```bash
 ./uninstall.sh
@@ -52,7 +52,7 @@ npm install
 npm run dev
 ```
 
-The dev server uses [http://127.0.0.1:3000](http://127.0.0.1:3000) as well. Stop the installed copy first, or start dev on another port with `npm run dev -- --port 3001`.
+The dev server uses [http://127.0.0.1:3000](http://127.0.0.1:3000) as well. Stop the running server first with `./uninstall.sh`, or start dev on another port with `npm run dev -- --port 3001`.
 
 ## Prices
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Build Tickslate and install it for this Mac user.
-# It starts at login and is available at http://127.0.0.1:3000
+# Build Tickslate and start it from this project.
+# It stays available at http://127.0.0.1:3000 until you stop it.
 # Override the port with PORT=4000 ./install.sh
 set -euo pipefail
 
@@ -49,8 +49,9 @@ port_in_use() {
   lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1
 }
 
-echo "Stopping a previous Tickslate service, if one is running..."
+echo "Stopping a previous Tickslate server, if one is running..."
 stop_service
+remove_legacy_install
 
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   if ! port_in_use; then
@@ -91,49 +92,31 @@ if [[ -d "${ROOT}/public" ]]; then
 fi
 cp -R "${ROOT}/.next/static" "${server_dir}/.next/static"
 
-echo "Installing to ${APP_SUPPORT}"
-mkdir -p "$APP_SUPPORT" "$LOG_DIR" "$LAUNCH_AGENTS"
-rsync -aL --delete "${server_dir}/" "${APP_SUPPORT}/"
-remove_legacy_app
-
-: > "${LOG_DIR}/tickslate.log"
-: > "${LOG_DIR}/tickslate.err.log"
-
-LABEL="$LABEL" PLIST="$PLIST" NODE="$NODE" APP_SUPPORT="$APP_SUPPORT" \
-  LOG_DIR="$LOG_DIR" PORT="$PORT" HOST="$HOST" \
-  python3 - <<'PY'
+: > "$LOG_FILE"
+# Start a new session so the server keeps running after this script exits.
+PORT="$PORT" HOSTNAME="$HOST" NODE_ENV=production \
+  python3 - "$NODE" "$server_dir" "$LOG_FILE" "$PID_FILE" <<'PY'
 import os
-import plistlib
+import sys
 
-node_dir = os.path.dirname(os.environ["NODE"])
-plist = {
-    "Label": os.environ["LABEL"],
-    "ProgramArguments": [os.environ["NODE"], os.path.join(os.environ["APP_SUPPORT"], "server.js")],
-    "WorkingDirectory": os.environ["APP_SUPPORT"],
-    "RunAtLoad": True,
-    "KeepAlive": True,
-    "ProcessType": "Background",
-    "ThrottleInterval": 10,
-    "StandardOutPath": os.path.join(os.environ["LOG_DIR"], "tickslate.log"),
-    "StandardErrorPath": os.path.join(os.environ["LOG_DIR"], "tickslate.err.log"),
-    "EnvironmentVariables": {
-        "PORT": os.environ["PORT"],
-        "HOSTNAME": os.environ["HOST"],
-        "NODE_ENV": "production",
-        "PATH": node_dir + ":/usr/bin:/bin:/usr/sbin:/sbin",
-    },
-}
-with open(os.environ["PLIST"], "wb") as handle:
-    plistlib.dump(plist, handle)
+node, server_dir, log_path, pid_path = sys.argv[1:5]
+if os.fork() > 0:
+    raise SystemExit(0)
+os.setsid()
+if os.fork() > 0:
+    raise SystemExit(0)
+os.chdir(server_dir)
+log_fd = os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+os.dup2(log_fd, 1)
+os.dup2(log_fd, 2)
+os.close(log_fd)
+devnull = os.open(os.devnull, os.O_RDONLY)
+os.dup2(devnull, 0)
+os.close(devnull)
+with open(pid_path, "w", encoding="utf-8") as handle:
+    handle.write(str(os.getpid()))
+os.execv(node, [node, "server.js"])
 PY
-
-domain="gui/$(id -u)"
-if ! launchctl bootstrap "$domain" "$PLIST"; then
-  launchctl bootout "$domain" "$PLIST" >/dev/null 2>&1 || true
-  launchctl bootstrap "$domain" "$PLIST"
-fi
-launchctl enable "${domain}/${LABEL}" >/dev/null 2>&1 || true
-launchctl kickstart -k "${domain}/${LABEL}" >/dev/null 2>&1 || true
 
 echo "Waiting for Tickslate..."
 ready=0
@@ -147,14 +130,12 @@ done
 
 if [[ "$ready" -ne 1 ]]; then
   echo "Tickslate did not come up. Recent log:" >&2
-  tail -n 40 "${LOG_DIR}/tickslate.err.log" >&2 || true
-  stop_service
+  tail -n 40 "$LOG_FILE" >&2 || true
+  stop_local_process
   exit 1
 fi
 
-open "http://${HOST}:${PORT}/"
 echo
-echo "Tickslate is installed and running at http://${HOST}:${PORT}/"
-echo "It starts again when you log in. Open that address in a browser."
-echo "Logs: ${LOG_DIR}"
-echo "Remove it with: ${ROOT}/uninstall.sh"
+echo "Tickslate is running at http://${HOST}:${PORT}/"
+echo "Open that address in a browser when you want it."
+echo "Stop it with: ${ROOT}/uninstall.sh"

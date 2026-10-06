@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop Tickslate and remove the copy installed for this Mac user.
+# Stop Tickslate and remove leftovers from an earlier login-item install.
 # The project folder is left as it is.
 set -euo pipefail
 
@@ -14,22 +14,7 @@ fi
 
 echo "Stopping Tickslate..."
 stop_service
+remove_legacy_install
+rm -f "$LOG_FILE"
 
-if [[ -f "$PLIST" ]]; then
-  rm -f "$PLIST"
-  echo "Removed ${PLIST}"
-fi
-
-if [[ -d "$APP_SUPPORT" ]]; then
-  rm -rf "$APP_SUPPORT"
-  echo "Removed ${APP_SUPPORT}"
-fi
-
-if [[ -d "$LOG_DIR" ]]; then
-  rm -rf "$LOG_DIR"
-  echo "Removed ${LOG_DIR}"
-fi
-
-remove_legacy_app
-
-echo "Tickslate is uninstalled. This project folder was not changed."
+echo "Tickslate is stopped. This project folder was not changed."
