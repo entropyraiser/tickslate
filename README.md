@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tickslate
 
-## Getting Started
+A personal watchlist for the markets you actually check. US indices and stocks, crude oil, India, Asia and Europe, currencies, and crypto — live prices on the left, a simple area chart on the right.
 
-First, run the development server:
+![Tickslate, with the S&P 500 selected and the session chart open](docs/screenshot.png)
+
+Prices refresh in the background. The list you build stays in the browser.
+
+## Install on a Mac
+
+Tickslate needs macOS and Node.js 20 or newer. If Node is missing and Homebrew is installed, the installer fetches Node for you. The first run also needs a network connection to download dependencies.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd tickslate
+./install.sh
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://127.0.0.1:3000](http://127.0.0.1:3000). The server starts again when you log in.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Use another port if 3000 is taken:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+PORT=4000 ./install.sh
+```
 
-## Learn More
+Remove the installed copy, the login item, and the logs:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+./uninstall.sh
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Uninstall leaves this repository in place.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Use it
 
-## Deploy on Vercel
+- Rows are grouped: US indices, US stocks, energy, India, Asia & Europe, currencies, and crypto. Each row has the price, the day’s change, and a sparkline.
+- Select a symbol to open its quote and area chart. Ranges are 1D, 5D, 1M, 6M, YTD, 1Y, and 5Y.
+- Search adds a ticker. Press `/` to focus the search field. Arrow keys move through the list.
+- Clocks for New York, London, Mumbai, and Tokyo sit in the header. A green dot means that regular session is open.
+- A pill shows open, pre-market, post-market, or closed. Delayed quotes are labeled.
+- Switch between dark and light from the header. The choice is remembered.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The default tape includes the S&P 500, Dow, Nasdaq, Russell 2000, and VIX; Apple, Microsoft, NVIDIA, Amazon, Alphabet, Meta, Tesla, and JPMorgan; WTI and Brent; Nifty 50, Sensex, and Nifty Bank; Nikkei, Hang Seng, Shanghai, Shenzhen, China A50, KOSPI, Taiwan, DAX, and FTSE 100; the US dollar index, EUR/USD, GBP/USD, USD/JPY, USD/INR, and USD/CNY; Bitcoin, Ethereum, and Solana.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Search also knows a few more names, such as Reliance, gold, and the CAC 40. Any other Yahoo symbol can be added by typing it.
+
+## Develop
+
+```bash
+npm install
+npm run dev
+```
+
+The dev server uses [http://127.0.0.1:3000](http://127.0.0.1:3000) as well. Stop the installed copy first, or start dev on another port with `npm run dev -- --port 3001`.
+
+## Prices
+
+Quotes and charts come from Yahoo Finance. Equity prices are often delayed. The one-day chart is the one that stays available. Longer ranges load when Yahoo is not rate-limiting the request.
